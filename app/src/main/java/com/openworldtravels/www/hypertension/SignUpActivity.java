@@ -1,13 +1,25 @@
 package com.openworldtravels.www.hypertension;
 
+import android.content.Context;
 import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.StrictMode;
+import android.provider.MediaStore;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+
+import org.jibble.simpleftp.SimpleFTP;
+
+import java.io.File;
 
 public class SignUpActivity extends AppCompatActivity {
 
@@ -15,7 +27,9 @@ public class SignUpActivity extends AppCompatActivity {
     private EditText userEditText, passwordEditText, nameEditText;
     private ImageView imageView;
     private Button button;
-    private String userString, passwordString, nameString, imageString;
+    private String userString, passwordString, nameString, imageString,
+            imagePathString, nameImageString;
+    private boolean aBoolean = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,8 +59,16 @@ public class SignUpActivity extends AppCompatActivity {
                     MyAlert myAlert = new MyAlert(SignUpActivity.this,
                             "มีช่องว่าง", "Please Fill All Every Blank");
                     myAlert.myDialog();
-                }
+                } else if (aBoolean) {
 
+                    // Non Choose Image
+                    MyAlert myAlert = new MyAlert(SignUpActivity.this, "ยังไม่เลือกรูปภาพ",
+                            "กรุณาเลือกรูปภาพด้วย คะ");
+                    myAlert.myDialog();
+
+                } else {
+                    uploadImageAnStringToServer();
+                }
 
 
             }   // onClick
@@ -68,6 +90,66 @@ public class SignUpActivity extends AppCompatActivity {
 
     }   // Main Method
 
+    private void uploadImageAnStringToServer() {
+
+        //Upload Image
+        try {
+
+            //Change Policy
+            StrictMode.ThreadPolicy threadPolicy = new StrictMode.ThreadPolicy
+                    .Builder().permitAll().build();
+            StrictMode.setThreadPolicy(threadPolicy);
+
+            //User simpleFTP
+            SimpleFTP simpleFTP = new SimpleFTP();
+            MyConstant myConstant = new MyConstant();
+            simpleFTP.connect(myConstant.getHostString(), myConstant.getPortAnInt(),
+                    myConstant.getUserString(), myConstant.getPasswordString());
+            simpleFTP.bin();
+            simpleFTP.cwd("img");
+            simpleFTP.stor(new File(imagePathString));
+            simpleFTP.disconnect();
+
+            //Upload String
+
+
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+    }   // upload
+
+
+    //Create Inner Class
+    private class AddUser extends AsyncTask<String, Void, String> {
+
+        //Explicit
+        private Context context;
+
+        public AddUser(Context context) {
+            this.context = context;
+        }
+
+        @Override
+        protected String doInBackground(String... strings) {
+
+
+
+
+            return null;
+        }   // doInBack
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+        }   // onPost
+
+    }   // AddUser Class
+
+
     @Override
     protected void onActivityResult(int requestCode,
                                     int resultCode,
@@ -78,8 +160,55 @@ public class SignUpActivity extends AppCompatActivity {
 
             Log.d("20octV1", "Result ==> OK");
 
+            Uri uri = data.getData();
+
+            //Show View
+            try {
+
+                Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver()
+                        .openInputStream(uri));
+                imageView.setImageBitmap(bitmap);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }   // try
+
+            //Find Path of Image
+            imagePathString = myFindPathImage(uri);
+            Log.d("20octV1", "imagePathString ==> " + imagePathString);
+
+            aBoolean = false;
+
+            //Find Name of Image
+            nameImageString = imagePathString.substring(imagePathString.lastIndexOf("/"));
+            imageString = "http://swiftcodingthai.com/pee/img" + nameImageString;
+            Log.d("20octV1", "imageStrint ==> " + imageString);
+
         }   // if
 
+
+
     }   // onActivityResult
+
+    private String myFindPathImage(Uri uri) {
+
+        String strResult = null;
+
+        String[] strings = {MediaStore.Images.Media.DATA};
+        Cursor cursor = getContentResolver().query(uri, strings, null, null, null);
+
+        if (cursor != null) {
+
+            cursor.moveToFirst();
+            int i = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+            strResult = cursor.getString(i);
+
+        } else {
+            strResult = uri.getPath();
+        }
+
+
+        return strResult;
+    }
 
 }   // Main Class
