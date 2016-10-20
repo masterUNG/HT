@@ -16,6 +16,13 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.Toast;
+
+import com.squareup.okhttp.FormEncodingBuilder;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
 
 import org.jibble.simpleftp.SimpleFTP;
 
@@ -111,8 +118,8 @@ public class SignUpActivity extends AppCompatActivity {
             simpleFTP.disconnect();
 
             //Upload String
-
-
+            AddUser addUser = new AddUser(SignUpActivity.this);
+            addUser.execute(myConstant.getUrlJSONString());
 
 
         } catch (Exception e) {
@@ -129,6 +136,7 @@ public class SignUpActivity extends AppCompatActivity {
         //Explicit
         private Context context;
 
+
         public AddUser(Context context) {
             this.context = context;
         }
@@ -136,15 +144,41 @@ public class SignUpActivity extends AppCompatActivity {
         @Override
         protected String doInBackground(String... strings) {
 
+            try {
 
+                OkHttpClient okHttpClient = new OkHttpClient();
+                RequestBody requestBody = new FormEncodingBuilder()
+                        .add("isAdd", "true")
+                        .add("User", userString)
+                        .add("Password", passwordString)
+                        .add("Name", nameString)
+                        .add("Image", imageString)
+                        .build();
+                Request.Builder builder = new Request.Builder();
+                Request request = builder.url(strings[0]).post(requestBody).build();
+                Response response = okHttpClient.newCall(request).execute();
+                return response.body().string();
 
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
 
-            return null;
         }   // doInBack
 
         @Override
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
+
+            Log.d("20octV1", "Result ==> " + s);
+
+            if (Boolean.parseBoolean(s)) {
+                Toast.makeText(context, "Upload Successful", Toast.LENGTH_SHORT).show();
+                finish();
+            } else {
+                Toast.makeText(context, "Cannot Upload Successful", Toast.LENGTH_SHORT).show();
+            }
+
         }   // onPost
 
     }   // AddUser Class
